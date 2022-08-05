@@ -21,6 +21,8 @@ pub(crate) struct TimeZone {
     extra_rule: Option<TransitionRule>,
 }
 
+const UTC_TZ: &[u8] = b"TZif2UTCTZif2UTC\nUTC0";
+
 impl TimeZone {
     /// Returns local time zone.
     ///
@@ -41,7 +43,11 @@ impl TimeZone {
         }
 
         if tz_string == "localtime" {
-            return Self::from_tz_data(&fs::read("/etc/localtime")?);
+            return match fs::read("/etc/localtime") {
+                Ok(tz_data) => Self::from_tz_data(&tz_data),
+                // Fall back to UTC if `/etc/localtime` is not consumable
+                Err(_) => Self::from_tz_data(UTC_TZ),
+            };
         }
 
         let mut chars = tz_string.chars();
